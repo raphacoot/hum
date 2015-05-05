@@ -1,0 +1,118 @@
+package simulacro1.model;
+
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+
+import simulacro1.sort.NameComparator;
+import simulacro1.sort.SurnameComparator;
+
+public class People {
+	private List<Person> people = new LinkedList<Person>();
+	
+	/**
+	 * Método para añadir una persona
+	 * @param person a añadir
+	 */
+	public void add(Person person){
+		checkObj(person);
+		people.add(person);
+	}
+
+	/**
+	 * Metodo para añadir una lista de personas
+	 * @param list a añadir
+	 */
+	public void add(List<Person> list){
+		checkList(list);
+		people.addAll(list);
+	}
+	
+	/**
+	 * Metodo para calcular la deuda total
+	 * @return deuda total
+	 */
+	public double amountTotal(){
+		int result=0;
+		for(Person person : people){
+			result=result+person.getAmountOwned();
+		}
+		return result;
+	}
+	
+	/**
+	 * Personas ordenadas por nombre
+	 * @return lista ordenada
+	 */
+	public List<Person> getPeopleByName(){
+		return sort(new NameComparator());
+	}
+	
+	/**
+	 * Personas ordenadas por apellido
+	 * @return lista ordenada
+	 */
+	public List<Person> getPeopleBySurname(){
+		return sort(new SurnameComparator());
+	}
+	
+	/**
+	 * Metdo para ordenar la lista segun el comparador que se pase como parametro
+	 * @param comparador segun el cual se quiere ordenar 
+	 * @return lista ordenada
+	 */
+	private List<Person> sort(Comparator<Person> comp) {
+		List<Person> sorted = new LinkedList<Person>();
+		for(int i=0; i<people.size(); i++){
+			Person p = (Person) people.get(i);
+			int index = seetPosition(sorted, p, comp);
+			sorted.add(index, p);
+		}
+		return sorted;
+	}
+	
+	/**
+	 * Metod para conseguir la posicion en la que se debe colocar la persona
+	 * @param sorted lista a ordenar
+	 * @param p persona
+	 * @param comparador segun el cual se quiere ordenar
+	 * @return
+	 */
+	private int seetPosition(List<Person> sorted, Person p, Comparator<Person> comp) {
+		checkObj(p);
+		checkComp(comp);
+		for(int i=0; i<sorted.size(); i++){
+			Person p1 = (Person) sorted.get(i);
+			if(comp.compare(p, p1)<0)
+				return i;
+		}
+		return sorted.size();
+	}
+	
+	/**
+	 * Metodo para comprobar si un objeto es nulo cuando se pasa como parametro
+	 * @param objeto a comprobar
+	 */
+	private void checkObj(Object obj){
+		if(obj==null)
+			throw new IllegalArgumentException("Objeto nulo");
+	}	
+	
+	/**
+	 * Metodo para comprobar si una lista es nula o esta vacia cuando se pasa como parametro
+	 * @param list a comprobar
+	 */
+	private void checkList(List<Person> list) {
+		if(list == null || list.isEmpty())
+			throw new IllegalArgumentException("La lista es nula o está vacía");		
+	}
+	
+	/**
+	 * Metodo para comprobar si un comparador es nulo
+	 * @param comp a comprobar
+	 */
+	private void checkComp(Comparator<Person> comp){
+		if(comp==null)
+			throw new IllegalArgumentException("Comparador nulo");
+	}
+}
