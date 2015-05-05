@@ -1,0 +1,437 @@
+// PEOPLE
+package simulacrio1.model;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Comparator;
+
+import simulacro.sort.NameComparator;
+
+public class People {
+	private List<Person> people = new LinkedList<Person>();
+	
+	/**
+	 * Metodo para aÒadir una persona a la lista
+	 */
+	public void add(Person person){
+		checkObj(person);
+		people.add(person);
+	}
+	
+	/**
+	 * Metodo Para aÒadir a una lista de personas
+	 */
+	public void add(List<Person> list){
+		checkList(list);
+		people.addAll(list);
+	}
+	
+	/**
+	 * Metodo para calcular la deuda total
+	 */
+	public double amountTotal(){
+		int result = 0;
+		for(Person person: people){
+			result = result + person.getAmountOwned();
+		}
+		return result;
+	}
+	
+	/**
+	 * Personas ordenadas por nombre
+	 */
+	public List<Person> getPeopleByName(){
+		return sort(new NameComparator());
+	}
+	
+	/**
+	 * Metodo para ordenar la lista segun el comparador que se pase como parametro
+	 */
+	private List<Person> sort(Comparator<Person> comp){
+		List<Person> sorted = new LinkedList<Person>();
+		for(int i=0; i<people.size(); i++){
+			Person p = (Person) people.get(i);
+			int index = seetPosition(sorted, p, comp);
+			sorted.add(index, p);
+		}
+		return sorted;
+	}
+	
+	/**
+	 * Metodo para conseguir la posicion en la que se debe colocar a la persona
+	 */
+	private int seetPosition(List<Person> sorted, Person p, Comparator<Person> comp){
+		checkObj(p);
+		checkComp(comp);
+		for (int i=0; i<sorted.size(); i++){
+			Person p1 = (Person) sorted.get(i);
+			if (comp.compare(p, p1)<0)
+				return i;
+		}
+		return sorted.size();
+	}
+	
+	
+	/**
+	 * Metodo para comprobar si un comparador es nulo
+	 */
+	private void checkComp(Comparator<Person> comp){
+		if (comp == null)
+			throw new IllegalArgumentException("Comparador nulo");
+	}
+	
+	
+	
+	/**
+	 * Metodo para comprobar si la lista es nula o vacia cuando se le pasa algo
+	 */
+	public void checkList(List<Person> list){
+		if (list == null || list.isEmpty())
+			throw new IllegalArgumentException("La lista es nula o esta vacia");
+	}
+	
+	/**
+	 * Metodo para comprobar si un objeto es nulo cuando se pasa como paramentro
+	 */
+	private void checkObj(Object obj){
+		if(obj == null)
+			throw new IllegalArgumentException("Objeto Nulo");
+	}
+	
+
+}
+
+// CLIENT PROCESSOR
+package simulacrio1.model;
+
+import java.io.IOException;
+import java.util.List;
+
+import simulacro1.FileHelper;
+
+public class ClientProcessor {
+	private FileHelper file = new FileHelper();
+	private People people = new People();
+	
+	/**
+	 * Metodo que calcula la deuda total
+	 * @return deuda total
+	 */
+	public double amountTotal(){
+		return people.amountTotal();
+	}
+	
+	/**
+	 * Metodo que carga los clientes del archivo en una lista
+	 */
+	public void loadFiles(String name) throws IOException{
+		checkString(name);
+		List<Person> clients = file.loadFiles(name);
+		people.add(clients);
+	}
+	
+	/**
+	 * Metodo que ordena la lista por nombre
+	 */
+	public List<Person> getPeopleByName(){
+		return people.getPeopleByName();
+	}
+	
+	/**
+	 * Metodo para comprobar que la cadena no esta vacia
+	 */
+	private void checkString(String s){
+		if ( s == null || s.length() == 0)
+			throw new IllegalArgumentException("La cadena esta vacia o es nula ");
+	}
+	
+	
+	
+	
+	
+	
+
+}
+
+// file helper
+package simulacro1.file;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.zip.GZIPOutputStream;
+
+import simulacro1.model.Client;
+import simulacro1.model.ClientPremium;
+import simulacro1.model.Person;
+import simulacro1.file.InvalidFormatException;
+
+public class FileHelper {
+	/**
+	 * Metodo para leer la informacion de un fichero
+	 * @param name del fichero
+	 * @return
+	 * @throws IOException
+	 */
+	public List<Person> loadFiles(String name) throws IOException{
+		checkString(name);
+		BufferedReader in = new BufferedReader(new FileReader(name));
+		return parseFile(in);
+	}
+	
+	/**
+	 * Metodo para extraer las lineas del fichero y almacenarlas en una lista
+	 * @param in informacion a extraer
+	 * @return lista con las lineas
+	 * @throws IOException
+	 */
+	private List<Person> parseFile(BufferedReader in) throws IOException {
+		checkStream(in);
+		List<Person> resultado = new LinkedList<Person>();
+		try{
+			parseLine(in,resultado);
+		}
+		finally{
+			in.close();
+		}
+		return resultado;
+	}
+	
+	/**
+	 * Metodo para crear una lista con los objetos de cada linea
+	 * @param in informacion a extraer
+	 * @param resultado lista con los objetos
+	 * @throws IOException
+	 */
+	private void parseLine(BufferedReader in, List<Person> resultado) throws IOException {
+		checkStream(in);
+		int lineNumber=0;
+		while(in.ready()){
+			lineNumber++;
+			String line = in.readLine();
+			if (isBlankLine(line)){
+				Log.log("Error en la linea"+lineNumber);
+			}
+			String parts[] = line.split(";");
+			try{
+				if(parts[0].equals("Client"))
+					resultado.add(new Client(parts[1], parts[2], Integer.parseInt(parts[3])));
+				else if(parts[0].equals("PremiumClient"))
+					resultado.add(new ClientPremium(parts[1], parts[2], Integer.parseInt(parts[3]), Integer.parseInt(parts[4])));
+				else
+					throw new InvalidFormatException(parts[0]+ "No es un tipo valido");
+			}
+			catch(NumberFormatException e){
+				Log.log("Linea invalida"+ lineNumber + ":" + e.getMessage());
+			}
+			catch(InvalidFormatException e){
+				Log.log("Linea invalida"+ lineNumber + ":" + e.getMessage());
+			}
+		}
+	}
+	
+	/**
+	 * Metodo para saber si una linea esta vacia o es nula
+	 * @param line a comprobar
+	 * @return verdadero si es correcta, falso si no 
+	 */
+	private boolean isBlankLine(String line){
+		return line==null || line.length()==0;
+	}
+	
+	/**
+	 * Metodo para salvar los datos en un archivo
+	 * @param name del fichero
+	 * @param people lista de objetos a salvar
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public void saveDataToFile(String name, List<Person> people) throws FileNotFoundException, IOException{
+		checkString(name);
+		checkList(people);
+		BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(name))));
+		serialize(out, people);
+	}
+	
+	/**
+	 * Metodo para ir guardando los objetos uno a uno
+	 * @param out flujo donde se van guardando
+	 * @param people lista de objetos a guardar
+	 * @throws IOException
+	 */
+	private void serialize(BufferedWriter out, List<Person> people) throws IOException {
+		checkStream(out);
+		checkList(people);
+		try{
+			for(int i=0; i<people.size(); i++){
+				Person p=(Person) people.get(i);
+				out.write(p.toString());
+				out.newLine();
+				out.flush();
+			}
+		}
+		finally{
+			out.close();
+		}
+	}
+	
+	/**
+	 * Metodo para comprobar si una lista es nula o esta vacia cuando se pasa como parametro
+	 * @param list a comprobar
+	 */
+	private void checkList(List<Person> list) {
+		if(list == null || list.isEmpty())
+			throw new IllegalArgumentException("La lista es nula o est√° vac√≠a");		
+	}
+	
+	/**
+	 * Metodo para comprobar si un filtro es nulo
+	 * @param w a comprobar
+	 */
+	private void checkStream(BufferedWriter w){
+		if(w==null)
+			throw new IllegalArgumentException("Filtro nulo");
+	}
+	
+	/**
+	 * Metodo para comprobar si un filtro es nulo
+	 * @param r a comprobar
+	 */
+	private void checkStream(BufferedReader r){
+		if(r==null)
+			throw new IllegalArgumentException("Filtro nulo");
+	}
+	
+	/**
+	 * Metodo para comprobar si una cadena es nula o esta vacia
+	 * @param s cadena a comprobar
+	 */
+	private void checkString(String s){
+		if(s==null||s.length()==0)
+			throw new IllegalArgumentException("Cadena nula o vacia");
+	}
+}
+
+//INVALID EXCEPTION
+package simulacro1.file;
+
+public class InvalidFormatException extends Exception{
+	private static final long serialVersionUID = 1L;
+	
+	public InvalidFormatException(String msg){
+		super(msg);
+	}
+}
+
+//LOG
+package simulacro1.file;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+public class Log {
+	public static String LOG_FILE = "clientes.log";
+
+	public static void log(String msg) {
+		try {
+			PrintWriter log = new PrintWriter(new FileWriter(LOG_FILE, true));
+			try {
+				log.write(msg);
+			} finally {
+				log.close();
+			}
+		} catch (IOException e) {
+			System.err.println("No se puede crear el log");
+		}
+	}
+}
+//NAME COMPARATOR
+package simulacro1.sort;
+
+import java.util.Comparator;
+
+import simulacro1.model.Person;
+
+public class NameComparator implements Comparator<Person>{
+
+	@Override
+	public int compare(Person p1, Person p2) {
+		checkObj(p1);
+		checkObj(p2);
+		return p1.getName().compareTo(p2.getName());
+	}
+	
+	/**
+	 * Metodo para comprobar si un objeto es nulo cuando se pasa como parametro
+	 * @param objeto a comprobar
+	 */
+	private void checkObj(Object obj){
+		if(obj==null)
+			throw new IllegalArgumentException("Objeto nulo");
+	}	
+}
+
+//TEST
+package simulacro1.test;
+
+import static org.junit.Assert.*;
+
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import simulacro1.model.Client;
+import simulacro1.model.ClientProcessor;
+
+public class ClientProcessorTest {
+	private ClientProcessor cp;
+
+	@Before
+	public void setUp() throws Exception {
+		cp = new ClientProcessor();
+	}
+
+	@Test
+	public void testAmountTotal() {
+		//Caso 1: No hay clientes, deuda 0
+		assertEquals(cp.amountTotal(), 0.0, 0.1);
+		
+		//Caso 2: Hay un cliente
+		Client c = new Client("Lucy", "Heartfilia", 1000);
+		cp.add(c);
+		assertEquals(cp.amountTotal(), 1000, 0.1);
+		
+		//Caso 3: Hay m√°s de uno
+		Client c1 = new Client("Natsu", "Dragneel", 1000);
+		Client c2 = new Client("Gray", "Fullbuster", 1000);
+		cp.add(c1);
+		cp.add(c2);
+		assertEquals(cp.amountTotal(), 3000, 0.1);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testLoadFilesIllegalArgumentException() throws IOException{
+		//Caso 1
+		cp.loadFiles(null);
+		
+		//Caso 2
+		cp.loadFiles("");
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testSaveDataToFileIllegalArgumentException() throws IOException{
+		//Caso 1
+		cp.saveDataToFile(null);
+		
+		//Caso 2
+		cp.saveDataToFile("");
+	}
+}
